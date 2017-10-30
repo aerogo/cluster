@@ -3,10 +3,12 @@ package cluster
 import (
 	"github.com/aerogo/cluster/client"
 	"github.com/aerogo/cluster/server"
+	"github.com/aerogo/packet"
 )
 
 // Node ...
 type Node interface {
+	Broadcast(*packet.Packet)
 	Close()
 	IsClosed() bool
 	IsServer() bool

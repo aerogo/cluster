@@ -127,6 +127,20 @@ func (node *Node) acceptConnections() {
 	}
 }
 
+// Broadcast ...
+func (node *Node) Broadcast(msg *packet.Packet) {
+	for client := range node.AllClients() {
+		client.(*Client).Outgoing <- msg
+	}
+}
+
+// AllClients ...
+func (node *Node) AllClients() chan interface{} {
+	channel := make(chan interface{}, 128)
+	go syncMapValues(&node.clients, channel)
+	return channel
+}
+
 // Close ...
 func (node *Node) Close() {
 	if node.closed {
@@ -134,6 +148,11 @@ func (node *Node) Close() {
 	}
 
 	node.close <- true
+}
+
+// ClientCount ...
+func (node *Node) ClientCount() int {
+	return int(atomic.LoadInt32(&node.clientCount))
 }
 
 // IsClosed ...
@@ -144,4 +163,14 @@ func (node *Node) IsClosed() bool {
 // IsServer ...
 func (node *Node) IsServer() bool {
 	return true
+}
+
+// syncMapValues iterates over all values in a sync.Map and sends them to the given channel.
+func syncMapValues(data *sync.Map, channel chan interface{}) {
+	data.Range(func(key, value interface{}) bool {
+		channel <- value
+		return true
+	})
+
+	close(channel)
 }
