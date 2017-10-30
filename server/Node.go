@@ -17,7 +17,7 @@ type Node struct {
 	newClients   chan net.Conn
 	deadClients  chan net.Conn
 	close        chan bool
-	closed       bool
+	closed       atomic.Value
 	port         int
 	onConnect    []func(*Client)
 	onDisconnect []func(*Client)
@@ -41,6 +41,7 @@ func (node *Node) Start() error {
 		return err
 	}
 
+	node.closed.Store(false)
 	node.listener = listener
 
 	go node.mainLoop()
@@ -105,7 +106,7 @@ func (node *Node) mainLoop() {
 			}
 
 		case <-node.close:
-			node.closed = true
+			node.closed.Store(true)
 
 			// Stop the server
 			err := node.listener.Close()
@@ -126,7 +127,7 @@ func (node *Node) acceptConnections() {
 		conn, err := node.listener.Accept()
 
 		if err != nil {
-			if node.closed {
+			if node.IsClosed() {
 				return
 			}
 
@@ -153,11 +154,12 @@ func (node *Node) AllClients() chan interface{} {
 
 // Close ...
 func (node *Node) Close() {
-	if node.closed {
+	if node.IsClosed() {
 		return
 	}
 
 	node.close <- true
+	close(node.close)
 }
 
 // OnConnect ...
@@ -177,7 +179,7 @@ func (node *Node) ClientCount() int {
 
 // IsClosed ...
 func (node *Node) IsClosed() bool {
-	return node.closed
+	return node.closed.Load().(bool)
 }
 
 // IsServer ...

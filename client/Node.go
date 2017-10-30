@@ -3,6 +3,7 @@ package client
 import (
 	"net"
 	"strconv"
+	"sync/atomic"
 
 	"github.com/aerogo/packet"
 )
@@ -12,7 +13,7 @@ type Node struct {
 	packet.Stream
 	serverPort int
 	close      chan bool
-	closed     bool
+	closed     atomic.Value
 }
 
 // New ...
@@ -30,6 +31,8 @@ func (node *Node) Start() error {
 	if err != nil {
 		return err
 	}
+
+	node.closed.Store(false)
 
 	node.Connection = conn
 	node.Incoming = make(chan *packet.Packet)
@@ -67,7 +70,7 @@ func (node *Node) write() {
 func (node *Node) waitClose() {
 	<-node.close
 
-	node.closed = true
+	node.closed.Store(true)
 	err := node.Connection.Close()
 
 	if err != nil {
@@ -82,16 +85,17 @@ func (node *Node) Broadcast(msg *packet.Packet) {
 
 // Close ...
 func (node *Node) Close() {
-	if node.closed {
+	if node.IsClosed() {
 		return
 	}
 
 	node.close <- true
+	close(node.close)
 }
 
 // IsClosed ...
 func (node *Node) IsClosed() bool {
-	return node.closed
+	return node.closed.Load().(bool)
 }
 
 // IsServer ...
