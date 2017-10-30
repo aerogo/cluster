@@ -11,14 +11,16 @@ import (
 
 // Node ...
 type Node struct {
-	listener    net.Listener
-	clients     sync.Map
-	clientCount int32
-	newClients  chan net.Conn
-	deadClients chan net.Conn
-	close       chan bool
-	closed      bool
-	port        int
+	listener     net.Listener
+	clients      sync.Map
+	clientCount  int32
+	newClients   chan net.Conn
+	deadClients  chan net.Conn
+	close        chan bool
+	closed       bool
+	port         int
+	onConnect    []func(*Client)
+	onDisconnect []func(*Client)
 }
 
 // New ...
@@ -74,6 +76,10 @@ func (node *Node) mainLoop() {
 			go client.read()
 			go client.write()
 
+			for _, callback := range node.onConnect {
+				callback(client)
+			}
+
 		case connection := <-node.deadClients:
 			obj, exists := node.clients.Load(connection)
 
@@ -93,6 +99,10 @@ func (node *Node) mainLoop() {
 			// Remove connection from our list
 			node.clients.Delete(connection)
 			atomic.AddInt32(&node.clientCount, -1)
+
+			for _, callback := range node.onDisconnect {
+				callback(client)
+			}
 
 		case <-node.close:
 			node.closed = true
@@ -148,6 +158,16 @@ func (node *Node) Close() {
 	}
 
 	node.close <- true
+}
+
+// OnConnect ...
+func (node *Node) OnConnect(callback func(*Client)) {
+	node.onConnect = append(node.onConnect, callback)
+}
+
+// OnDisconnect ...
+func (node *Node) OnDisconnect(callback func(*Client)) {
+	node.onDisconnect = append(node.onDisconnect, callback)
 }
 
 // ClientCount ...

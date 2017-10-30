@@ -22,7 +22,18 @@ var (
 
 // New ...
 func New(port int) Node {
-	node := server.New(port)
-	node.Start()
-	return node
+	serverNode := server.New(port)
+
+	if serverNode.Start() == nil {
+		return serverNode
+	}
+
+	clientNode := client.New(port)
+	err := clientNode.Start()
+
+	if err != nil {
+		panic(err)
+	}
+
+	return clientNode
 }
