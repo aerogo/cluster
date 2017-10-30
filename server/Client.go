@@ -12,7 +12,7 @@ type Client struct {
 
 // read ...
 func (client *Client) read() {
-	err := client.Stream.Read()
+	err := client.Read()
 
 	if err != nil {
 		// fmt.Println(err)
@@ -23,7 +23,7 @@ func (client *Client) read() {
 
 // write ...
 func (client *Client) write() {
-	err := client.Stream.Write()
+	err := client.Write()
 
 	if err != nil {
 		// fmt.Println(err)
