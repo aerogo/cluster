@@ -2,6 +2,7 @@ package cluster
 
 import (
 	"net"
+	"strconv"
 	"sync"
 	"sync/atomic"
 
@@ -20,6 +21,7 @@ type ServerNode struct {
 	deadConnections chan net.Conn
 	close           chan bool
 	closed          bool
+	port            int
 }
 
 // start ...
@@ -28,7 +30,7 @@ func (node *ServerNode) start() error {
 	node.deadConnections = make(chan net.Conn, 32)
 	node.close = make(chan bool)
 
-	listener, err := net.Listen("tcp", ":3000")
+	listener, err := net.Listen("tcp", ":"+strconv.Itoa(node.port))
 
 	if err != nil {
 		return err
@@ -47,21 +49,25 @@ func (node *ServerNode) mainLoop() {
 	for {
 		select {
 		case connection := <-node.newConnections:
+			// Configure connection
 			connection.(*net.TCPConn).SetNoDelay(true)
 			connection.(*net.TCPConn).SetKeepAlive(true)
 
+			// Create server connection object
 			client := &ServerConnection{
-				serverNode: node,
 				Stream: packet.Stream{
 					Connection: connection,
 					Incoming:   make(chan *packet.Packet),
 					Outgoing:   make(chan *packet.Packet),
 				},
+				serverNode: node,
 			}
 
+			// Add connection to our list
 			node.connections.Store(connection, client)
 			atomic.AddInt32(&node.connectionCount, 1)
 
+			// Start send and receive tasks
 			go client.read()
 			go client.write()
 
@@ -73,20 +79,29 @@ func (node *ServerNode) mainLoop() {
 			}
 
 			client := obj.(*ServerConnection)
+
+			// Close channels
 			close(client.Incoming)
 			close(client.Outgoing)
+
+			// Close connection
 			connection.Close()
+
+			// Remove connection from our list
 			node.connections.Delete(connection)
 			atomic.AddInt32(&node.connectionCount, -1)
 
 		case <-node.close:
 			node.closed = true
+
+			// Stop the server
 			err := node.listener.Close()
 
 			if err != nil {
 				panic(err)
 			}
 
+			// Exit main loop
 			return
 		}
 	}
@@ -111,7 +126,11 @@ func (node *ServerNode) acceptConnections() {
 
 // Close ...
 func (node *ServerNode) Close() {
-	// ...
+	if node.closed {
+		return
+	}
+
+	node.close <- true
 }
 
 // IsClosed ...

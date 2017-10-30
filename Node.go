@@ -8,8 +8,10 @@ type Node interface {
 }
 
 // New ...
-func New() Node {
-	node := &ServerNode{}
+func New(port int) Node {
+	node := &ServerNode{
+		port: port,
+	}
 	node.start()
 	return node
 }
