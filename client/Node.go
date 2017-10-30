@@ -91,7 +91,7 @@ func (node *Node) Close() {
 
 // IsClosed ...
 func (node *Node) IsClosed() bool {
-	return false
+	return node.closed
 }
 
 // IsServer ...

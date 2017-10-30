@@ -2,20 +2,30 @@ package cluster_test
 
 import (
 	"testing"
-
-	"github.com/stretchr/testify/assert"
+	"time"
 
 	"github.com/aerogo/cluster"
+	"github.com/stretchr/testify/assert"
 )
 
-func TestNode(t *testing.T) {
-	node := cluster.New(3000)
+const nodeCount = 5
 
-	assert.NotNil(t, node)
-	assert.True(t, node.IsServer())
-	assert.False(t, node.IsClosed())
+func TestClusterClose(t *testing.T) {
+	nodes := make([]cluster.Node, nodeCount, nodeCount)
 
-	node.Close()
+	for i := 0; i < nodeCount; i++ {
+		nodes[i] = cluster.New(3000)
+	}
 
-	assert.True(t, node.IsClosed())
+	time.Sleep(100 * time.Millisecond)
+
+	for i := 0; i < nodeCount; i++ {
+		nodes[i].Close()
+	}
+
+	time.Sleep(100 * time.Millisecond)
+
+	for i := 0; i < nodeCount; i++ {
+		assert.True(t, nodes[i].IsClosed(), "node[%d].IsClosed()", i)
+	}
 }
