@@ -1,6 +1,9 @@
 package cluster
 
-import "github.com/aerogo/cluster/server"
+import (
+	"github.com/aerogo/cluster/client"
+	"github.com/aerogo/cluster/server"
+)
 
 // Node ...
 type Node interface {
@@ -12,7 +15,7 @@ type Node interface {
 // Force interface implementations
 var (
 	_ Node = (*server.Node)(nil)
-	_ Node = (*ClientNode)(nil)
+	_ Node = (*client.Node)(nil)
 )
 
 // New ...
