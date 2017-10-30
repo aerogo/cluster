@@ -1,5 +1,7 @@
 package cluster
 
+import "github.com/aerogo/cluster/server"
+
 // Node ...
 type Node interface {
 	Close()
@@ -7,11 +9,15 @@ type Node interface {
 	IsServer() bool
 }
 
+// Force interface implementations
+var (
+	_ Node = (*server.Node)(nil)
+	_ Node = (*ClientNode)(nil)
+)
+
 // New ...
 func New(port int) Node {
-	node := &ServerNode{
-		port: port,
-	}
-	node.start()
+	node := server.New(port)
+	node.Start()
 	return node
 }

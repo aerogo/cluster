@@ -1,4 +1,4 @@
-package cluster
+package server
 
 import (
 	"net"
@@ -9,27 +9,30 @@ import (
 	"github.com/aerogo/packet"
 )
 
-// Force interface implementation
-var _ Node = (*ServerNode)(nil)
-
-// ServerNode ...
-type ServerNode struct {
-	listener        net.Listener
-	connections     sync.Map
-	connectionCount int32
-	newConnections  chan net.Conn
-	deadConnections chan net.Conn
-	close           chan bool
-	closed          bool
-	port            int
+// Node ...
+type Node struct {
+	listener    net.Listener
+	clients     sync.Map
+	clientCount int32
+	newClients  chan net.Conn
+	deadClients chan net.Conn
+	close       chan bool
+	closed      bool
+	port        int
 }
 
-// start ...
-func (node *ServerNode) start() error {
-	node.newConnections = make(chan net.Conn, 32)
-	node.deadConnections = make(chan net.Conn, 32)
-	node.close = make(chan bool)
+// New ...
+func New(port int) *Node {
+	return &Node{
+		newClients:  make(chan net.Conn, 32),
+		deadClients: make(chan net.Conn, 32),
+		close:       make(chan bool),
+		port:        port,
+	}
+}
 
+// Start ...
+func (node *Node) Start() error {
 	listener, err := net.Listen("tcp", ":"+strconv.Itoa(node.port))
 
 	if err != nil {
@@ -45,40 +48,40 @@ func (node *ServerNode) start() error {
 }
 
 // mainLoop ...
-func (node *ServerNode) mainLoop() {
+func (node *Node) mainLoop() {
 	for {
 		select {
-		case connection := <-node.newConnections:
+		case connection := <-node.newClients:
 			// Configure connection
 			connection.(*net.TCPConn).SetNoDelay(true)
 			connection.(*net.TCPConn).SetKeepAlive(true)
 
 			// Create server connection object
-			client := &ServerConnection{
+			client := &Client{
 				Stream: packet.Stream{
 					Connection: connection,
 					Incoming:   make(chan *packet.Packet),
 					Outgoing:   make(chan *packet.Packet),
 				},
-				serverNode: node,
+				Node: node,
 			}
 
 			// Add connection to our list
-			node.connections.Store(connection, client)
-			atomic.AddInt32(&node.connectionCount, 1)
+			node.clients.Store(connection, client)
+			atomic.AddInt32(&node.clientCount, 1)
 
 			// Start send and receive tasks
 			go client.read()
 			go client.write()
 
-		case connection := <-node.deadConnections:
-			obj, exists := node.connections.Load(connection)
+		case connection := <-node.deadClients:
+			obj, exists := node.clients.Load(connection)
 
 			if !exists {
 				break
 			}
 
-			client := obj.(*ServerConnection)
+			client := obj.(*Client)
 
 			// Close channels
 			close(client.Incoming)
@@ -88,8 +91,8 @@ func (node *ServerNode) mainLoop() {
 			connection.Close()
 
 			// Remove connection from our list
-			node.connections.Delete(connection)
-			atomic.AddInt32(&node.connectionCount, -1)
+			node.clients.Delete(connection)
+			atomic.AddInt32(&node.clientCount, -1)
 
 		case <-node.close:
 			node.closed = true
@@ -108,7 +111,7 @@ func (node *ServerNode) mainLoop() {
 }
 
 // acceptConnections ...
-func (node *ServerNode) acceptConnections() {
+func (node *Node) acceptConnections() {
 	for {
 		conn, err := node.listener.Accept()
 
@@ -120,12 +123,12 @@ func (node *ServerNode) acceptConnections() {
 			panic(err)
 		}
 
-		node.newConnections <- conn.(*net.TCPConn)
+		node.newClients <- conn.(*net.TCPConn)
 	}
 }
 
 // Close ...
-func (node *ServerNode) Close() {
+func (node *Node) Close() {
 	if node.closed {
 		return
 	}
@@ -134,11 +137,11 @@ func (node *ServerNode) Close() {
 }
 
 // IsClosed ...
-func (node *ServerNode) IsClosed() bool {
+func (node *Node) IsClosed() bool {
 	return node.closed
 }
 
 // IsServer ...
-func (node *ServerNode) IsServer() bool {
+func (node *Node) IsServer() bool {
 	return true
 }
