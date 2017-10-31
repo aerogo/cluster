@@ -87,6 +87,15 @@ func (node *Node) waitClose() {
 	<-node.close
 
 	node.closed.Store(true)
+
+	for {
+		time.Sleep(1 * time.Millisecond)
+
+		if len(node.Incoming) == 0 && len(node.Outgoing) == 0 {
+			break
+		}
+	}
+
 	err := node.Connection.Close()
 
 	if err != nil {
