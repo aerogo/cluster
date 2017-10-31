@@ -21,14 +21,14 @@ var (
 )
 
 // New ...
-func New(port int) Node {
-	serverNode := server.New(port)
+func New(port int, hosts ...string) Node {
+	serverNode := server.New(port, hosts...)
 
 	if serverNode.Start() == nil {
 		return serverNode
 	}
 
-	clientNode := client.New(port)
+	clientNode := client.New(port, "localhost")
 	err := clientNode.Start()
 
 	if err != nil {

@@ -12,16 +12,18 @@ import (
 // Node ...
 type Node struct {
 	packet.Stream
-	serverPort int
-	close      chan bool
-	closed     atomic.Value
+	port   int
+	host   string
+	close  chan bool
+	closed atomic.Value
 }
 
 // New ...
-func New(serverPort int) *Node {
+func New(port int, host string) *Node {
 	return &Node{
-		serverPort: serverPort,
-		close:      make(chan bool),
+		port:  port,
+		host:  host,
+		close: make(chan bool),
 	}
 }
 
@@ -34,7 +36,7 @@ func (node *Node) Start() error {
 	try := 0
 
 	for try < maxRetries {
-		conn, err = net.Dial("tcp", "localhost:"+strconv.Itoa(node.serverPort))
+		conn, err = net.Dial("tcp", node.host+":"+strconv.Itoa(node.port))
 
 		if err == nil && conn != nil {
 			break

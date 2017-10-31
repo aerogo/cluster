@@ -7,6 +7,7 @@ import (
 	"sync/atomic"
 	"time"
 
+	"github.com/aerogo/cluster/client"
 	"github.com/aerogo/packet"
 )
 
@@ -24,15 +25,32 @@ type Node struct {
 	onDisconnect      []func(*Client)
 	onConnectMutex    sync.Mutex
 	onDisconnectMutex sync.Mutex
+	hosts             []string
+	hostClients       []*client.Node
 }
 
 // New ...
-func New(port int) *Node {
+func New(port int, hosts ...string) *Node {
+	// Filter out local hosts
+	skipHosts := localHosts()
+	filteredHosts := []string{}
+
+	for _, host := range hosts {
+		_, skip := skipHosts[host]
+
+		if skip {
+			continue
+		}
+
+		filteredHosts = append(filteredHosts, host)
+	}
+
 	return &Node{
 		newClients:  make(chan net.Conn, 32),
 		deadClients: make(chan net.Conn, 32),
 		close:       make(chan bool),
 		port:        port,
+		hosts:       filteredHosts,
 	}
 }
 
@@ -49,6 +67,18 @@ func (node *Node) Start() error {
 
 	go node.mainLoop()
 	go node.acceptConnections()
+
+	// Connect to other hosts
+	for _, host := range node.hosts {
+		clientNode := client.New(node.port, host)
+		err := clientNode.Start()
+
+		if err != nil {
+			return err
+		}
+
+		node.hostClients = append(node.hostClients, clientNode)
+	}
 
 	return nil
 }
@@ -229,4 +259,37 @@ func (node *Node) IsClosed() bool {
 // IsServer ...
 func (node *Node) IsServer() bool {
 	return true
+}
+
+// localHosts ...
+func localHosts() map[string]bool {
+	hosts := map[string]bool{}
+	ifaces, err := net.Interfaces()
+
+	if err != nil {
+		return nil
+	}
+
+	for _, i := range ifaces {
+		addrs, err := i.Addrs()
+
+		if err != nil {
+			continue
+		}
+
+		for _, addr := range addrs {
+			var ip net.IP
+
+			switch v := addr.(type) {
+			case *net.IPNet:
+				ip = v.IP
+			case *net.IPAddr:
+				ip = v.IP
+			}
+
+			hosts[ip.String()] = true
+		}
+	}
+
+	return hosts
 }
