@@ -4,6 +4,7 @@ import (
 	"net"
 	"strconv"
 	"sync/atomic"
+	"time"
 
 	"github.com/aerogo/packet"
 )
@@ -26,7 +27,22 @@ func New(serverPort int) *Node {
 
 // Start ...
 func (node *Node) Start() error {
-	conn, err := net.Dial("tcp", "localhost:"+strconv.Itoa(node.serverPort))
+	var conn net.Conn
+	var err error
+
+	const maxRetries = 10
+	try := 0
+
+	for try < maxRetries {
+		conn, err = net.Dial("tcp", "localhost:"+strconv.Itoa(node.serverPort))
+
+		if err == nil && conn != nil {
+			break
+		}
+
+		time.Sleep(100 * time.Millisecond)
+		try++
+	}
 
 	if err != nil {
 		return err

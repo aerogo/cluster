@@ -5,6 +5,7 @@ import (
 	"strconv"
 	"sync"
 	"sync/atomic"
+	"time"
 
 	"github.com/aerogo/packet"
 )
@@ -124,6 +125,8 @@ func (node *Node) mainLoop() {
 			if err != nil {
 				panic(err)
 			}
+
+			time.Sleep(1 * time.Millisecond)
 
 			// Tell the main thread we finished closing
 			node.close <- true
