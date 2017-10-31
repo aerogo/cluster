@@ -281,6 +281,29 @@ func (node *Node) IsServer() bool {
 	return true
 }
 
+// IsRemoteAddress tells you whether a given address is a remote address (on another machine).
+func (node *Node) IsRemoteAddress(addr net.Addr) bool {
+	ip := addressToIP(addr)
+	_, isLocal := node.localHosts[ip.String()]
+	return !isLocal
+}
+
+// addressToIP ...
+func addressToIP(addr net.Addr) net.IP {
+	switch v := addr.(type) {
+	case *net.IPNet:
+		return v.IP
+	case *net.IPAddr:
+		return v.IP
+	case *net.TCPAddr:
+		return v.IP
+	case *net.UDPAddr:
+		return v.IP
+	}
+
+	return nil
+}
+
 // allLocalHosts ...
 func allLocalHosts() map[string]bool {
 	hosts := map[string]bool{}
@@ -298,15 +321,7 @@ func allLocalHosts() map[string]bool {
 		}
 
 		for _, addr := range addrs {
-			var ip net.IP
-
-			switch v := addr.(type) {
-			case *net.IPNet:
-				ip = v.IP
-			case *net.IPAddr:
-				ip = v.IP
-			}
-
+			ip := addressToIP(addr)
 			hosts[ip.String()] = true
 		}
 	}
