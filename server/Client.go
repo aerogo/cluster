@@ -18,7 +18,7 @@ func (client *Client) read() {
 		// fmt.Println(err)
 	}
 
-	client.Node.deadClients <- client.Connection
+	client.Node.deadConnections <- client.Connection
 }
 
 // write ...
@@ -29,5 +29,5 @@ func (client *Client) write() {
 		// fmt.Println(err)
 	}
 
-	client.Node.deadClients <- client.Connection
+	client.Node.deadConnections <- client.Connection
 }

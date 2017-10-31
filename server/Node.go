@@ -1,13 +1,13 @@
 package server
 
 import (
+	"fmt"
 	"net"
 	"strconv"
 	"sync"
 	"sync/atomic"
 	"time"
 
-	"github.com/aerogo/cluster/client"
 	"github.com/aerogo/packet"
 )
 
@@ -16,8 +16,8 @@ type Node struct {
 	listener          net.Listener
 	clients           sync.Map
 	clientCount       int32
-	newClients        chan net.Conn
-	deadClients       chan net.Conn
+	newConnections    chan net.Conn
+	deadConnections   chan net.Conn
 	close             chan bool
 	closed            atomic.Value
 	port              int
@@ -26,7 +26,6 @@ type Node struct {
 	onConnectMutex    sync.Mutex
 	onDisconnectMutex sync.Mutex
 	hosts             []string
-	hostClients       []*client.Node
 	localHosts        map[string]bool
 }
 
@@ -47,12 +46,12 @@ func New(port int, hosts ...string) *Node {
 	}
 
 	return &Node{
-		newClients:  make(chan net.Conn, 32),
-		deadClients: make(chan net.Conn, 32),
-		close:       make(chan bool),
-		port:        port,
-		hosts:       filteredHosts,
-		localHosts:  localHosts,
+		newConnections:  make(chan net.Conn, 32),
+		deadConnections: make(chan net.Conn, 32),
+		close:           make(chan bool),
+		port:            port,
+		hosts:           filteredHosts,
+		localHosts:      localHosts,
 	}
 }
 
@@ -72,14 +71,15 @@ func (node *Node) Start() error {
 
 	// Connect to other hosts
 	for _, host := range node.hosts {
-		clientNode := client.New(node.port, host)
-		err := clientNode.Start()
+		address := host + ":" + strconv.Itoa(node.port)
+		conn, err := net.DialTimeout("tcp", address, 1*time.Second)
 
 		if err != nil {
-			return err
+			fmt.Println("Dead node:", address)
+			continue
 		}
 
-		node.hostClients = append(node.hostClients, clientNode)
+		node.newConnections <- conn
 	}
 
 	return nil
@@ -89,7 +89,7 @@ func (node *Node) Start() error {
 func (node *Node) mainLoop() {
 	for {
 		select {
-		case connection := <-node.newClients:
+		case connection := <-node.newConnections:
 			// Configure connection
 			connection.(*net.TCPConn).SetNoDelay(true)
 			connection.(*net.TCPConn).SetKeepAlive(true)
@@ -120,7 +120,7 @@ func (node *Node) mainLoop() {
 
 			node.onConnectMutex.Unlock()
 
-		case connection := <-node.deadClients:
+		case connection := <-node.deadConnections:
 			obj, exists := node.clients.Load(connection)
 
 			if !exists {
@@ -201,7 +201,7 @@ func (node *Node) acceptConnections() {
 			continue
 		}
 
-		node.newClients <- conn.(*net.TCPConn)
+		node.newConnections <- conn.(*net.TCPConn)
 	}
 }
 
