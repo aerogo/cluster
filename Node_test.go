@@ -24,12 +24,8 @@ func TestClusterClose(t *testing.T) {
 	time.Sleep(100 * time.Millisecond)
 
 	for i := 0; i < nodeCount; i++ {
+		assert.False(t, nodes[i].IsClosed(), "node[%d].IsClosed()", i)
 		nodes[i].Close()
-	}
-
-	time.Sleep(100 * time.Millisecond)
-
-	for i := 0; i < nodeCount; i++ {
 		assert.True(t, nodes[i].IsClosed(), "node[%d].IsClosed()", i)
 	}
 }

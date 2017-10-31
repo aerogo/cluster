@@ -115,6 +115,9 @@ func (node *Node) mainLoop() {
 				panic(err)
 			}
 
+			// Tell the main thread we finished closing
+			node.close <- true
+
 			// Exit main loop
 			return
 		}
@@ -141,14 +144,23 @@ func (node *Node) acceptConnections() {
 // Broadcast ...
 func (node *Node) Broadcast(msg *packet.Packet) {
 	for client := range node.AllClients() {
-		client.(*Client).Outgoing <- msg
+		client.Outgoing <- msg
 	}
 }
 
 // AllClients ...
-func (node *Node) AllClients() chan interface{} {
-	channel := make(chan interface{}, 128)
-	go syncMapValues(&node.clients, channel)
+func (node *Node) AllClients() chan *Client {
+	channel := make(chan *Client, 128)
+
+	go func() {
+		node.clients.Range(func(key, value interface{}) bool {
+			channel <- value.(*Client)
+			return true
+		})
+
+		close(channel)
+	}()
+
 	return channel
 }
 
@@ -158,7 +170,13 @@ func (node *Node) Close() {
 		return
 	}
 
+	// This will block until the close signal is processed
 	node.close <- true
+
+	// Wait for completion signal
+	<-node.close
+
+	// Close channel
 	close(node.close)
 }
 
@@ -185,14 +203,4 @@ func (node *Node) IsClosed() bool {
 // IsServer ...
 func (node *Node) IsServer() bool {
 	return true
-}
-
-// syncMapValues iterates over all values in a sync.Map and sends them to the given channel.
-func syncMapValues(data *sync.Map, channel chan interface{}) {
-	data.Range(func(key, value interface{}) bool {
-		channel <- value
-		return true
-	})
-
-	close(channel)
 }

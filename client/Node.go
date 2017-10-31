@@ -76,6 +76,8 @@ func (node *Node) waitClose() {
 	if err != nil {
 		panic(err)
 	}
+
+	node.close <- true
 }
 
 // Broadcast ...
@@ -89,7 +91,13 @@ func (node *Node) Close() {
 		return
 	}
 
+	// This will block until the close signal is processed
 	node.close <- true
+
+	// Wait for completion signal
+	<-node.close
+
+	// Close channel
 	close(node.close)
 }
 
