@@ -79,6 +79,7 @@ func (node *Node) Start() error {
 			continue
 		}
 
+		fmt.Println("Alive node:", address)
 		node.newConnections <- conn
 	}
 
