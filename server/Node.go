@@ -32,11 +32,11 @@ type Node struct {
 // New ...
 func New(port int, hosts ...string) *Node {
 	// Filter out local hosts
-	skipHosts := localHosts()
+	localHosts := allLocalHosts()
 	filteredHosts := []string{}
 
 	for _, host := range hosts {
-		_, skip := skipHosts[host]
+		_, skip := localHosts[host]
 
 		if skip {
 			continue
@@ -170,6 +170,8 @@ func (node *Node) mainLoop() {
 
 // acceptConnections ...
 func (node *Node) acceptConnections() {
+	localHosts := allLocalHosts()
+
 	for {
 		conn, err := node.listener.Accept()
 
@@ -179,6 +181,24 @@ func (node *Node) acceptConnections() {
 			}
 
 			panic(err)
+		}
+
+		remoteAddr := conn.RemoteAddr().(*net.TCPAddr)
+		ip := remoteAddr.IP.String()
+		_, ok := localHosts[ip]
+
+		if !ok {
+			for _, host := range node.hosts {
+				if host == ip {
+					ok = true
+					break
+				}
+			}
+		}
+
+		if !ok {
+			conn.Close()
+			continue
 		}
 
 		node.newClients <- conn.(*net.TCPConn)
@@ -261,8 +281,8 @@ func (node *Node) IsServer() bool {
 	return true
 }
 
-// localHosts ...
-func localHosts() map[string]bool {
+// allLocalHosts ...
+func allLocalHosts() map[string]bool {
 	hosts := map[string]bool{}
 	ifaces, err := net.Interfaces()
 
