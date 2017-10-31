@@ -27,6 +27,7 @@ type Node struct {
 	onDisconnectMutex sync.Mutex
 	hosts             []string
 	hostClients       []*client.Node
+	localHosts        map[string]bool
 }
 
 // New ...
@@ -51,6 +52,7 @@ func New(port int, hosts ...string) *Node {
 		close:       make(chan bool),
 		port:        port,
 		hosts:       filteredHosts,
+		localHosts:  localHosts,
 	}
 }
 
@@ -170,8 +172,6 @@ func (node *Node) mainLoop() {
 
 // acceptConnections ...
 func (node *Node) acceptConnections() {
-	localHosts := allLocalHosts()
-
 	for {
 		conn, err := node.listener.Accept()
 
@@ -185,7 +185,7 @@ func (node *Node) acceptConnections() {
 
 		remoteAddr := conn.RemoteAddr().(*net.TCPAddr)
 		ip := remoteAddr.IP.String()
-		_, ok := localHosts[ip]
+		_, ok := node.localHosts[ip]
 
 		if !ok {
 			for _, host := range node.hosts {
