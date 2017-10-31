@@ -11,16 +11,18 @@ import (
 
 // Node ...
 type Node struct {
-	listener     net.Listener
-	clients      sync.Map
-	clientCount  int32
-	newClients   chan net.Conn
-	deadClients  chan net.Conn
-	close        chan bool
-	closed       atomic.Value
-	port         int
-	onConnect    []func(*Client)
-	onDisconnect []func(*Client)
+	listener          net.Listener
+	clients           sync.Map
+	clientCount       int32
+	newClients        chan net.Conn
+	deadClients       chan net.Conn
+	close             chan bool
+	closed            atomic.Value
+	port              int
+	onConnect         []func(*Client)
+	onDisconnect      []func(*Client)
+	onConnectMutex    sync.Mutex
+	onDisconnectMutex sync.Mutex
 }
 
 // New ...
@@ -77,9 +79,13 @@ func (node *Node) mainLoop() {
 			go client.read()
 			go client.write()
 
+			node.onConnectMutex.Lock()
+
 			for _, callback := range node.onConnect {
 				callback(client)
 			}
+
+			node.onConnectMutex.Unlock()
 
 		case connection := <-node.deadClients:
 			obj, exists := node.clients.Load(connection)
@@ -101,9 +107,13 @@ func (node *Node) mainLoop() {
 			node.clients.Delete(connection)
 			atomic.AddInt32(&node.clientCount, -1)
 
+			node.onDisconnectMutex.Lock()
+
 			for _, callback := range node.onDisconnect {
 				callback(client)
 			}
+
+			node.onDisconnectMutex.Unlock()
 
 		case <-node.close:
 			node.closed.Store(true)
@@ -182,12 +192,24 @@ func (node *Node) Close() {
 
 // OnConnect ...
 func (node *Node) OnConnect(callback func(*Client)) {
+	if callback == nil {
+		return
+	}
+
+	node.onConnectMutex.Lock()
 	node.onConnect = append(node.onConnect, callback)
+	node.onConnectMutex.Unlock()
 }
 
 // OnDisconnect ...
 func (node *Node) OnDisconnect(callback func(*Client)) {
+	if callback == nil {
+		return
+	}
+
+	node.onDisconnectMutex.Lock()
 	node.onDisconnect = append(node.onDisconnect, callback)
+	node.onDisconnectMutex.Unlock()
 }
 
 // ClientCount ...
