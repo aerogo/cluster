@@ -126,6 +126,7 @@ func (node *Node) mainLoop() {
 				panic(err)
 			}
 
+			// This fixes a bug where Close() doesn't close the listener fast enough
 			time.Sleep(1 * time.Millisecond)
 
 			// Tell the main thread we finished closing
