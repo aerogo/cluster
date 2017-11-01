@@ -73,6 +73,8 @@ func (node *Node) read() {
 	if err != nil {
 		// fmt.Println(err)
 	}
+
+	close(node.Incoming)
 }
 
 // write ...
@@ -82,6 +84,8 @@ func (node *Node) write() {
 	if err != nil {
 		// fmt.Println(err)
 	}
+
+	close(node.Outgoing)
 }
 
 // waitClose ...
