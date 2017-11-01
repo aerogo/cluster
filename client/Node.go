@@ -112,6 +112,11 @@ func (node *Node) Broadcast(msg *packet.Packet) {
 	node.Outgoing <- msg
 }
 
+// Address ...
+func (node *Node) Address() net.Addr {
+	return node.Connection.LocalAddr()
+}
+
 // Close ...
 func (node *Node) Close() {
 	if node.IsClosed() {

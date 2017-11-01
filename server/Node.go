@@ -213,6 +213,11 @@ func (node *Node) Broadcast(msg *packet.Packet) {
 	}
 }
 
+// Address ...
+func (node *Node) Address() net.Addr {
+	return node.listener.Addr()
+}
+
 // AllClients ...
 func (node *Node) AllClients() chan *Client {
 	channel := make(chan *Client, 128)

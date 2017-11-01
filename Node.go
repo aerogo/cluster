@@ -1,6 +1,8 @@
 package cluster
 
 import (
+	"net"
+
 	"github.com/aerogo/cluster/client"
 	"github.com/aerogo/cluster/server"
 	"github.com/aerogo/packet"
@@ -9,6 +11,7 @@ import (
 // Node ...
 type Node interface {
 	Broadcast(*packet.Packet)
+	Address() net.Addr
 	Close()
 	IsClosed() bool
 	IsServer() bool
