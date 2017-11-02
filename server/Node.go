@@ -130,10 +130,6 @@ func (node *Node) mainLoop() {
 
 			client := obj.(*Client)
 
-			// Close channels
-			close(client.Incoming)
-			close(client.Outgoing)
-
 			// Close connection
 			connection.Close()
 

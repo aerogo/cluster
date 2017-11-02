@@ -18,6 +18,7 @@ func (client *Client) read() {
 		// fmt.Println(err)
 	}
 
+	close(client.Incoming)
 	client.Node.deadConnections <- client.Connection
 }
 
