@@ -27,6 +27,7 @@ type Node struct {
 	onDisconnectMutex sync.Mutex
 	hosts             []string
 	localHosts        map[string]bool
+	verbose           bool
 }
 
 // New ...
@@ -94,6 +95,7 @@ func (node *Node) mainLoop() {
 			// Configure connection
 			connection.(*net.TCPConn).SetNoDelay(true)
 			connection.(*net.TCPConn).SetKeepAlive(true)
+			connection.(*net.TCPConn).SetLinger(-1)
 
 			// Create server connection object
 			stream := packet.NewStream(4096)
@@ -145,11 +147,25 @@ func (node *Node) mainLoop() {
 
 			// Stop client connections
 			node.clients.Range(func(_, client interface{}) bool {
-				client.(*packet.Stream).Close()
+				stream := client.(*packet.Stream)
+
+				for len(stream.Outgoing) > 0 {
+					time.Sleep(1 * time.Millisecond)
+				}
+
+				if node.verbose {
+					fmt.Println("[server] close client", stream.Connection().RemoteAddr())
+				}
+
+				stream.Close()
 				return true
 			})
 
 			// Stop the server
+			if node.verbose {
+				fmt.Println("[server] close listener")
+			}
+
 			err := node.listener.Close()
 
 			if err != nil {
@@ -160,7 +176,7 @@ func (node *Node) mainLoop() {
 			time.Sleep(1 * time.Millisecond)
 
 			// Tell the main thread we finished closing
-			node.close <- true
+			close(node.close)
 
 			// Exit main loop
 			return
@@ -206,6 +222,10 @@ func (node *Node) acceptConnections() {
 // Broadcast ...
 func (node *Node) Broadcast(msg *packet.Packet) {
 	for stream := range node.AllClients() {
+		if node.verbose {
+			fmt.Println("[server] broadcast to", stream.Connection().RemoteAddr())
+		}
+
 		stream.Outgoing <- msg
 	}
 }
@@ -242,9 +262,6 @@ func (node *Node) Close() {
 
 	// Wait for completion signal
 	<-node.close
-
-	// Close channel
-	close(node.close)
 }
 
 // OnConnect ...

@@ -12,23 +12,22 @@ import (
 
 // Node ...
 type Node struct {
-	Stream *packet.Stream
-	port   int
-	host   string
-	close  chan bool
-	closed atomic.Value
+	Stream  *packet.Stream
+	port    int
+	host    string
+	verbose bool
+	close   chan bool
+	closed  atomic.Value
 }
 
 // New ...
 func New(port int, host string) *Node {
 	node := &Node{
-		port:  port,
-		host:  host,
-		close: make(chan bool),
+		port: port,
+		host: host,
 	}
 
 	node.Stream = packet.NewStream(4096)
-	go node.waitClose()
 	return node
 }
 
@@ -41,7 +40,10 @@ func (node *Node) Connect() error {
 	try := 0
 
 	for try < maxRetries {
-		fmt.Println("Connecting to", node.host+":"+strconv.Itoa(node.port), "try", try)
+		if node.verbose {
+			fmt.Println("[client] Connecting to", node.host+":"+strconv.Itoa(node.port), "#", try)
+		}
+
 		conn, err = net.Dial("tcp", node.host+":"+strconv.Itoa(node.port))
 
 		if err == nil && conn != nil {
@@ -58,12 +60,18 @@ func (node *Node) Connect() error {
 
 	conn.(*net.TCPConn).SetNoDelay(true)
 	conn.(*net.TCPConn).SetKeepAlive(true)
+	conn.(*net.TCPConn).SetLinger(-1)
 
+	node.close = make(chan bool)
 	node.closed.Store(false)
 
 	node.Stream.SetConnection(conn)
+	go node.waitClose()
 
-	fmt.Println(node.Address(), "Successfully connected.")
+	if node.verbose {
+		fmt.Println("[client] Successfully connected.", node.Address())
+	}
+
 	return nil
 }
 
@@ -76,11 +84,8 @@ func (node *Node) waitClose() {
 		time.Sleep(1 * time.Millisecond)
 	}
 
-	err := node.Stream.Close()
-
-	if err != nil {
-		panic(err)
-	}
+	// Close connection only, not the stream itself because it's reusable with a different connection.
+	node.Stream.Connection().Close()
 
 	close(node.close)
 }
