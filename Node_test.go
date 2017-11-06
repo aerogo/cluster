@@ -45,7 +45,7 @@ func TestClusterBroadcast(t *testing.T) {
 		wg.Add(1)
 
 		go func(node *client.Node) {
-			for msg := range node.Incoming {
+			for msg := range node.Stream.Incoming {
 				switch msg.Type {
 				case 0:
 					assert.Equal(t, message, string(msg.Data))

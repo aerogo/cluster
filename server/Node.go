@@ -21,8 +21,8 @@ type Node struct {
 	close             chan bool
 	closed            atomic.Value
 	port              int
-	onConnect         []func(*Client)
-	onDisconnect      []func(*Client)
+	onConnect         []func(*packet.Stream)
+	onDisconnect      []func(*packet.Stream)
 	onConnectMutex    sync.Mutex
 	onDisconnectMutex sync.Mutex
 	hosts             []string
@@ -96,27 +96,22 @@ func (node *Node) mainLoop() {
 			connection.(*net.TCPConn).SetKeepAlive(true)
 
 			// Create server connection object
-			client := &Client{
-				Stream: packet.Stream{
-					Connection: connection,
-					Incoming:   make(chan *packet.Packet),
-					Outgoing:   make(chan *packet.Packet),
-				},
-				Node: node,
-			}
+			stream := packet.NewStream(4096)
+
+			stream.OnError(func(ioErr packet.IOError) {
+				node.deadConnections <- ioErr.Connection
+			})
+
+			stream.SetConnection(connection)
 
 			// Add connection to our list
-			node.clients.Store(connection, client)
+			node.clients.Store(connection, stream)
 			atomic.AddInt32(&node.clientCount, 1)
-
-			// Start send and receive tasks
-			go client.read()
-			go client.write()
 
 			node.onConnectMutex.Lock()
 
 			for _, callback := range node.onConnect {
-				callback(client)
+				callback(stream)
 			}
 
 			node.onConnectMutex.Unlock()
@@ -128,10 +123,10 @@ func (node *Node) mainLoop() {
 				break
 			}
 
-			client := obj.(*Client)
+			stream := obj.(*packet.Stream)
 
 			// Close connection
-			connection.Close()
+			stream.Close()
 
 			// Remove connection from our list
 			node.clients.Delete(connection)
@@ -140,7 +135,7 @@ func (node *Node) mainLoop() {
 			node.onDisconnectMutex.Lock()
 
 			for _, callback := range node.onDisconnect {
-				callback(client)
+				callback(stream)
 			}
 
 			node.onDisconnectMutex.Unlock()
@@ -148,11 +143,17 @@ func (node *Node) mainLoop() {
 		case <-node.close:
 			node.closed.Store(true)
 
+			// Stop client connections
+			node.clients.Range(func(_, client interface{}) bool {
+				client.(*packet.Stream).Close()
+				return true
+			})
+
 			// Stop the server
 			err := node.listener.Close()
 
 			if err != nil {
-				panic(err)
+				fmt.Println(err)
 			}
 
 			// This fixes a bug where Close() doesn't close the listener fast enough
@@ -204,8 +205,8 @@ func (node *Node) acceptConnections() {
 
 // Broadcast ...
 func (node *Node) Broadcast(msg *packet.Packet) {
-	for client := range node.AllClients() {
-		client.Outgoing <- msg
+	for stream := range node.AllClients() {
+		stream.Outgoing <- msg
 	}
 }
 
@@ -215,12 +216,12 @@ func (node *Node) Address() net.Addr {
 }
 
 // AllClients ...
-func (node *Node) AllClients() chan *Client {
-	channel := make(chan *Client, 128)
+func (node *Node) AllClients() chan *packet.Stream {
+	channel := make(chan *packet.Stream, 128)
 
 	go func() {
 		node.clients.Range(func(key, value interface{}) bool {
-			channel <- value.(*Client)
+			channel <- value.(*packet.Stream)
 			return true
 		})
 
@@ -247,7 +248,7 @@ func (node *Node) Close() {
 }
 
 // OnConnect ...
-func (node *Node) OnConnect(callback func(*Client)) {
+func (node *Node) OnConnect(callback func(*packet.Stream)) {
 	if callback == nil {
 		return
 	}
@@ -258,7 +259,7 @@ func (node *Node) OnConnect(callback func(*Client)) {
 }
 
 // OnDisconnect ...
-func (node *Node) OnDisconnect(callback func(*Client)) {
+func (node *Node) OnDisconnect(callback func(*packet.Stream)) {
 	if callback == nil {
 		return
 	}

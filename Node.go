@@ -32,7 +32,7 @@ func New(port int, hosts ...string) Node {
 	}
 
 	clientNode := client.New(port, "localhost")
-	err := clientNode.Start()
+	err := clientNode.Connect()
 
 	if err != nil {
 		panic(err)
