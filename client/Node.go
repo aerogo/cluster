@@ -27,7 +27,7 @@ func New(port int, host string) *Node {
 		host: host,
 	}
 
-	node.Stream = packet.NewStream(4096)
+	node.Stream = packet.NewStream(0)
 	return node
 }
 
@@ -97,7 +97,14 @@ func (node *Node) Connection() net.Conn {
 
 // Broadcast ...
 func (node *Node) Broadcast(msg *packet.Packet) {
-	node.Stream.Outgoing <- msg
+	for {
+		select {
+		case node.Stream.Outgoing <- msg:
+			return
+		default:
+			time.Sleep(1 * time.Millisecond)
+		}
+	}
 }
 
 // Address ...

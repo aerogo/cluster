@@ -98,7 +98,7 @@ func (node *Node) mainLoop() {
 			connection.(*net.TCPConn).SetLinger(-1)
 
 			// Create server connection object
-			stream := packet.NewStream(4096)
+			stream := packet.NewStream(0)
 
 			stream.OnError(func(ioErr packet.IOError) {
 				node.deadConnections <- ioErr.Connection
