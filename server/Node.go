@@ -64,6 +64,7 @@ func (node *Node) Start() error {
 		return err
 	}
 
+	atomic.StoreInt32(&node.clientCount, 0)
 	node.closed.Store(false)
 	node.listener = listener
 
@@ -89,9 +90,17 @@ func (node *Node) Start() error {
 
 // mainLoop ...
 func (node *Node) mainLoop() {
+	if node.verbose {
+		fmt.Println("[server] main loop started")
+	}
+
 	for {
 		select {
 		case connection := <-node.newConnections:
+			if node.verbose {
+				fmt.Println("[server] New connection", connection.RemoteAddr())
+			}
+
 			// Configure connection
 			connection.(*net.TCPConn).SetNoDelay(true)
 			connection.(*net.TCPConn).SetKeepAlive(true)
@@ -145,22 +154,6 @@ func (node *Node) mainLoop() {
 		case <-node.close:
 			node.closed.Store(true)
 
-			// Stop client connections
-			node.clients.Range(func(_, client interface{}) bool {
-				stream := client.(*packet.Stream)
-
-				// for len(stream.Outgoing) > 0 {
-				// 	time.Sleep(1 * time.Millisecond)
-				// }
-
-				if node.verbose {
-					fmt.Println("[server] close client", stream.Connection().RemoteAddr())
-				}
-
-				stream.Close()
-				return true
-			})
-
 			// Stop the server
 			if node.verbose {
 				fmt.Println("[server] close listener")
@@ -172,11 +165,34 @@ func (node *Node) mainLoop() {
 				fmt.Println(err)
 			}
 
-			// This fixes a bug where Close() doesn't close the listener fast enough
+			// This fixes a bug where listener.Close() doesn't close the listener fast enough
 			time.Sleep(1 * time.Millisecond)
+
+			// Stop client connections
+			node.clients.Range(func(_, client interface{}) bool {
+				stream := client.(*packet.Stream)
+
+				for len(stream.Outgoing) > 0 {
+					time.Sleep(1 * time.Millisecond)
+				}
+
+				// This prevents the send buffer from being discarded
+				time.Sleep(1 * time.Millisecond)
+
+				if node.verbose {
+					fmt.Println("[server] close client", stream.Connection().RemoteAddr())
+				}
+
+				stream.Close()
+				return true
+			})
 
 			// Tell the main thread we finished closing
 			close(node.close)
+
+			if node.verbose {
+				fmt.Println("[server] exit main loop")
+			}
 
 			// Exit main loop
 			return
@@ -213,6 +229,10 @@ func (node *Node) acceptConnections() {
 		if !ok {
 			conn.Close()
 			continue
+		}
+
+		if node.verbose {
+			fmt.Println("[server] Accepted new conn", conn.RemoteAddr())
 		}
 
 		node.newConnections <- conn.(*net.TCPConn)
