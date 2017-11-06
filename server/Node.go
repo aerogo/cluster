@@ -98,7 +98,7 @@ func (node *Node) mainLoop() {
 			connection.(*net.TCPConn).SetLinger(-1)
 
 			// Create server connection object
-			stream := packet.NewStream(0)
+			stream := packet.NewStream(8192)
 
 			stream.OnError(func(ioErr packet.IOError) {
 				node.deadConnections <- ioErr.Connection
@@ -149,9 +149,9 @@ func (node *Node) mainLoop() {
 			node.clients.Range(func(_, client interface{}) bool {
 				stream := client.(*packet.Stream)
 
-				for len(stream.Outgoing) > 0 {
-					time.Sleep(1 * time.Millisecond)
-				}
+				// for len(stream.Outgoing) > 0 {
+				// 	time.Sleep(1 * time.Millisecond)
+				// }
 
 				if node.verbose {
 					fmt.Println("[server] close client", stream.Connection().RemoteAddr())
@@ -226,7 +226,19 @@ func (node *Node) Broadcast(msg *packet.Packet) {
 			fmt.Println("[server] broadcast to", stream.Connection().RemoteAddr())
 		}
 
-		stream.Outgoing <- msg
+		outgoing := stream.Outgoing
+
+		select {
+		case outgoing <- msg:
+			break
+
+		default:
+			go func() {
+				outgoing <- msg
+			}()
+
+			break
+		}
 	}
 }
 

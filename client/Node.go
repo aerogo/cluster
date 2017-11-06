@@ -27,7 +27,7 @@ func New(port int, host string) *Node {
 		host: host,
 	}
 
-	node.Stream = packet.NewStream(0)
+	node.Stream = packet.NewStream(8192)
 	return node
 }
 
@@ -80,9 +80,9 @@ func (node *Node) waitClose() {
 	<-node.close
 	node.closed.Store(true)
 
-	for len(node.Stream.Incoming) > 0 || len(node.Stream.Outgoing) > 0 {
-		time.Sleep(1 * time.Millisecond)
-	}
+	// for len(node.Stream.Incoming) > 0 || len(node.Stream.Outgoing) > 0 {
+	// 	time.Sleep(1 * time.Millisecond)
+	// }
 
 	// Close connection only, not the stream itself because it's reusable with a different connection.
 	node.Stream.Connection().Close()
@@ -97,13 +97,16 @@ func (node *Node) Connection() net.Conn {
 
 // Broadcast ...
 func (node *Node) Broadcast(msg *packet.Packet) {
-	for {
-		select {
-		case node.Stream.Outgoing <- msg:
-			return
-		default:
-			time.Sleep(1 * time.Millisecond)
-		}
+	select {
+	case node.Stream.Outgoing <- msg:
+		return
+
+	default:
+		go func() {
+			node.Stream.Outgoing <- msg
+		}()
+
+		return
 	}
 }
 
