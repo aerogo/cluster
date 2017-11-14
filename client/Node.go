@@ -36,12 +36,9 @@ func (node *Node) Connect() error {
 	var conn net.Conn
 	var err error
 
-	const maxRetries = 10
-	try := 0
-
-	for try < maxRetries {
+	for {
 		if node.verbose {
-			fmt.Println("[client] Connecting to", node.host+":"+strconv.Itoa(node.port), "#", try)
+			fmt.Println("[client] Connecting to", node.host+":"+strconv.Itoa(node.port))
 		}
 
 		conn, err = net.Dial("tcp", node.host+":"+strconv.Itoa(node.port))
@@ -50,8 +47,7 @@ func (node *Node) Connect() error {
 			break
 		}
 
-		time.Sleep(100 * time.Millisecond)
-		try++
+		time.Sleep(time.Second)
 	}
 
 	if err != nil {
