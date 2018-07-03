@@ -80,11 +80,11 @@ func (node *Node) waitClose() {
 		time.Sleep(1 * time.Millisecond)
 	}
 
+	// This prevents a bug where outgoing packets are not sent by the operating system yet.
+	time.Sleep(1 * time.Millisecond)
+
 	// Close connection only, not the stream itself because it's reusable with a different connection.
 	node.Stream.Connection().Close()
-
-	// This prevents a bug where outgoing packets are not sent by the operating system yet.
-	time.Sleep(100 * time.Millisecond)
 
 	close(node.close)
 }
