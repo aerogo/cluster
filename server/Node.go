@@ -137,7 +137,7 @@ func (node *Node) mainLoop() {
 			stream := obj.(*packet.Stream)
 
 			// Close connection
-			stream.Close()
+			stream.Connection().Close()
 
 			// Remove connection from our list
 			node.clients.Delete(connection)
@@ -150,6 +150,7 @@ func (node *Node) mainLoop() {
 			}
 
 			node.onDisconnectMutex.Unlock()
+			close(stream.Incoming)
 
 		case <-node.close:
 			node.closed.Store(true)
@@ -183,7 +184,7 @@ func (node *Node) mainLoop() {
 					fmt.Println("[server] close client", stream.Connection().RemoteAddr())
 				}
 
-				stream.Close()
+				stream.Connection().Close()
 				return true
 			})
 
