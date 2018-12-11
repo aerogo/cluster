@@ -20,7 +20,7 @@ type Node struct {
 	closed  atomic.Value
 }
 
-// New ...
+// New creates a new client node.
 func New(port int, host string) *Node {
 	node := &Node{
 		port: port,
@@ -98,14 +98,10 @@ func (node *Node) Connection() net.Conn {
 func (node *Node) Broadcast(msg *packet.Packet) {
 	select {
 	case node.Stream.Outgoing <- msg:
-		return
-
+		// Send successful.
 	default:
-		go func() {
-			node.Stream.Outgoing <- msg
-		}()
-
-		return
+		// Discard packet.
+		// TODO: Find a better solution to deal with this.
 	}
 }
 

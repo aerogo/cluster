@@ -30,7 +30,7 @@ type Node struct {
 	verbose           bool
 }
 
-// New ...
+// New creates a new server node.
 func New(port int, hosts ...string) *Node {
 	// Filter out local hosts
 	localHosts := allLocalHosts()
@@ -128,6 +128,14 @@ func (node *Node) mainLoop() {
 			node.onConnectMutex.Unlock()
 
 		case connection := <-node.deadConnections:
+			if node.verbose {
+				fmt.Println("[server] Dead connection", connection.RemoteAddr())
+			}
+
+			// Close connection
+			connection.Close()
+
+			// Get stream object
 			obj, exists := node.clients.Load(connection)
 
 			if !exists {
@@ -136,13 +144,9 @@ func (node *Node) mainLoop() {
 
 			stream := obj.(*packet.Stream)
 
-			// Close connection
-			stream.Connection().Close()
-
 			// Remove connection from our list
 			node.clients.Delete(connection)
 			atomic.AddInt32(&node.clientCount, -1)
-
 			node.onDisconnectMutex.Lock()
 
 			for _, callback := range node.onDisconnect {
@@ -214,10 +218,12 @@ func (node *Node) acceptConnections() {
 			panic(err)
 		}
 
+		// Is the client on our local machine?
 		remoteAddr := conn.RemoteAddr().(*net.TCPAddr)
 		ip := remoteAddr.IP.String()
 		_, ok := node.localHosts[ip]
 
+		// If not, maybe it is in our list of registered hosts.
 		if !ok {
 			for _, host := range node.hosts {
 				if host == ip {
@@ -227,48 +233,39 @@ func (node *Node) acceptConnections() {
 			}
 		}
 
+		// Don't allow remote connections from unregistered hosts.
 		if !ok {
 			conn.Close()
 			continue
-		}
-
-		if node.verbose {
-			fmt.Println("[server] Accepted new conn", conn.RemoteAddr())
 		}
 
 		node.newConnections <- conn.(*net.TCPConn)
 	}
 }
 
-// Broadcast ...
+// Broadcast sends a packet towards all clients.
 func (node *Node) Broadcast(msg *packet.Packet) {
 	for stream := range node.AllClients() {
 		if node.verbose {
 			fmt.Println("[server] broadcast to", stream.Connection().RemoteAddr())
 		}
 
-		outgoing := stream.Outgoing
-
 		select {
-		case outgoing <- msg:
-			break
-
+		case stream.Outgoing <- msg:
+			// Send successful.
 		default:
-			go func() {
-				outgoing <- msg
-			}()
-
-			break
+			// Discard packet.
+			// TODO: Find a better solution to deal with this.
 		}
 	}
 }
 
-// Address ...
+// Address returns the net.Addr of the server.
 func (node *Node) Address() net.Addr {
 	return node.listener.Addr()
 }
 
-// AllClients ...
+// AllClients returns a channel of all clients' packet streams.
 func (node *Node) AllClients() chan *packet.Stream {
 	channel := make(chan *packet.Stream, 128)
 
@@ -284,12 +281,8 @@ func (node *Node) AllClients() chan *packet.Stream {
 	return channel
 }
 
-// Close ...
+// Close closes the server.
 func (node *Node) Close() {
-	if node.IsClosed() {
-		return
-	}
-
 	// This will block until the close signal is processed
 	node.close <- true
 

@@ -23,7 +23,7 @@ var (
 	_ Node = (*client.Node)(nil)
 )
 
-// New ...
+// New creates a new node in the cluster.
 func New(port int, hosts ...string) Node {
 	serverNode := server.New(port, hosts...)
 
