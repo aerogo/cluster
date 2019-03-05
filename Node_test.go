@@ -15,7 +15,7 @@ import (
 const nodeCount = 5
 
 func TestClusterClose(t *testing.T) {
-	nodes := make([]cluster.Node, nodeCount, nodeCount)
+	nodes := make([]cluster.Node, nodeCount)
 
 	for i := 0; i < nodeCount; i++ {
 		nodes[i] = cluster.New(3000)
@@ -31,7 +31,7 @@ func TestClusterClose(t *testing.T) {
 }
 
 func TestClusterBroadcast(t *testing.T) {
-	nodes := make([]cluster.Node, nodeCount, nodeCount)
+	nodes := make([]cluster.Node, nodeCount)
 	wg := sync.WaitGroup{}
 	message := "hello"
 
