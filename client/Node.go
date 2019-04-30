@@ -33,7 +33,7 @@ func New(port int, host string) *Node {
 
 // Connect ...
 func (node *Node) Connect() error {
-	var conn net.Conn
+	var connection net.Conn
 	var err error
 
 	for {
@@ -41,32 +41,28 @@ func (node *Node) Connect() error {
 			fmt.Println("[client] Connecting to", node.host+":"+strconv.Itoa(node.port))
 		}
 
-		conn, err = net.Dial("tcp", node.host+":"+strconv.Itoa(node.port))
+		connection, err = net.Dial("tcp", node.host+":"+strconv.Itoa(node.port))
 
-		if err == nil && conn != nil {
+		if err == nil && connection != nil {
 			break
 		}
 
 		time.Sleep(time.Second)
 	}
 
-	if err != nil {
-		return err
-	}
-
-	err = conn.(*net.TCPConn).SetNoDelay(true)
+	err = connection.(*net.TCPConn).SetNoDelay(true)
 
 	if err != nil {
 		return err
 	}
 
-	err = conn.(*net.TCPConn).SetKeepAlive(true)
+	err = connection.(*net.TCPConn).SetKeepAlive(true)
 
 	if err != nil {
 		return err
 	}
 
-	err = conn.(*net.TCPConn).SetLinger(-1)
+	err = connection.(*net.TCPConn).SetLinger(-1)
 
 	if err != nil {
 		return err
@@ -75,7 +71,7 @@ func (node *Node) Connect() error {
 	node.close = make(chan bool)
 	node.closed.Store(false)
 
-	node.Stream.SetConnection(conn)
+	node.Stream.SetConnection(connection)
 	go node.waitClose()
 
 	if node.verbose {
