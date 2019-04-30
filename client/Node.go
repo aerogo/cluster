@@ -54,9 +54,23 @@ func (node *Node) Connect() error {
 		return err
 	}
 
-	conn.(*net.TCPConn).SetNoDelay(true)
-	conn.(*net.TCPConn).SetKeepAlive(true)
-	conn.(*net.TCPConn).SetLinger(-1)
+	err = conn.(*net.TCPConn).SetNoDelay(true)
+
+	if err != nil {
+		return err
+	}
+
+	err = conn.(*net.TCPConn).SetKeepAlive(true)
+
+	if err != nil {
+		return err
+	}
+
+	err = conn.(*net.TCPConn).SetLinger(-1)
+
+	if err != nil {
+		return err
+	}
 
 	node.close = make(chan bool)
 	node.closed.Store(false)

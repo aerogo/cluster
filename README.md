@@ -1,9 +1,9 @@
 # cluster
 
-[![Godoc reference][godoc-image]][godoc-url]
-[![Go report card][goreportcard-image]][goreportcard-url]
-[![Tests][travis-image]][travis-url]
-[![Code coverage][codecov-image]][codecov-url]
+[![Reference][godoc-image]][godoc-url]
+[![Report][report-image]][report-url]
+[![Tests][tests-image]][tests-url]
+[![Coverage][codecov-image]][codecov-url]
 [![License][license-image]][license-url]
 
 Network cluster.
@@ -16,11 +16,11 @@ Network cluster.
 
 [godoc-image]: https://godoc.org/github.com/aerogo/cluster?status.svg
 [godoc-url]: https://godoc.org/github.com/aerogo/cluster
-[goreportcard-image]: https://goreportcard.com/badge/github.com/aerogo/cluster
-[goreportcard-url]: https://goreportcard.com/report/github.com/aerogo/cluster
-[travis-image]: https://travis-ci.org/aerogo/cluster.svg?branch=master
-[travis-url]: https://travis-ci.org/aerogo/cluster
-[codecov-image]: https://codecov.io/gh/aerogo/cluster/branch/master/graph/badge.svg
+[report-image]: https://goreportcard.com/badge/github.com/aerogo/cluster
+[report-url]: https://goreportcard.com/report/github.com/aerogo/cluster
+[tests-image]: https://cloud.drone.io/api/badges/aerogo/cluster/status.svg
+[tests-url]: https://cloud.drone.io/aerogo/cluster
+[codecov-image]: https://codecov.io/gh/aerogo/cluster/graph/badge.svg
 [codecov-url]: https://codecov.io/gh/aerogo/cluster
 [license-image]: https://img.shields.io/badge/license-MIT-blue.svg
 [license-url]: https://github.com/aerogo/cluster/blob/master/LICENSE

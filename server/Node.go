@@ -102,9 +102,23 @@ func (node *Node) mainLoop() {
 			}
 
 			// Configure connection
-			connection.(*net.TCPConn).SetNoDelay(true)
-			connection.(*net.TCPConn).SetKeepAlive(true)
-			connection.(*net.TCPConn).SetLinger(-1)
+			err := connection.(*net.TCPConn).SetNoDelay(true)
+
+			if err != nil {
+				fmt.Printf("Failed setting NoDelay on: %s -> %s\n", connection.LocalAddr().String(), connection.RemoteAddr().String())
+			}
+
+			err = connection.(*net.TCPConn).SetKeepAlive(true)
+
+			if err != nil {
+				fmt.Printf("Failed setting KeepAlive on: %s -> %s\n", connection.LocalAddr().String(), connection.RemoteAddr().String())
+			}
+
+			err = connection.(*net.TCPConn).SetLinger(-1)
+
+			if err != nil {
+				fmt.Printf("Failed setting Linger on: %s -> %s\n", connection.LocalAddr().String(), connection.RemoteAddr().String())
+			}
 
 			// Create server connection object
 			stream := packet.NewStream(8192)
