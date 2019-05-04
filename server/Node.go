@@ -266,7 +266,7 @@ func (node *Node) Broadcast(msg *packet.Packet) {
 func (node *Node) BroadcastFiltered(msg *packet.Packet, filter func(*packet.Stream) bool) {
 	for stream := range node.AllClients() {
 		// Skip this client if filtered
-		if filter != nil && filter(stream) == false {
+		if filter != nil && !filter(stream) {
 			continue
 		}
 
