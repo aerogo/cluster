@@ -259,14 +259,26 @@ func (node *Node) acceptConnections() {
 
 // Broadcast sends a packet towards all clients.
 func (node *Node) Broadcast(msg *packet.Packet) {
+	node.BroadcastFiltered(msg, nil)
+}
+
+// BroadcastFiltered sends a packet towards all clients.
+func (node *Node) BroadcastFiltered(msg *packet.Packet, filter func(*packet.Stream) bool) {
 	for stream := range node.AllClients() {
+		// Skip this client if filtered
+		if filter != nil && filter(stream) == false {
+			continue
+		}
+
+		// Log message
 		if node.verbose {
 			fmt.Println("[server] broadcast to", stream.Connection().RemoteAddr())
 		}
 
+		// Send the packet
 		select {
 		case stream.Outgoing <- msg:
-			// Send successful.
+			// Sent successfully.
 		default:
 			// Discard packet.
 			// TODO: Find a better solution to deal with this.
