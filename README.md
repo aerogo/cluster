@@ -1,12 +1,24 @@
 # cluster
 
-[![Reference][godoc-image]][godoc-url]
+[![Godoc][godoc-image]][godoc-url]
 [![Report][report-image]][report-url]
 [![Tests][tests-image]][tests-url]
-[![Coverage][codecov-image]][codecov-url]
-[![License][license-image]][license-url]
+[![Coverage][coverage-image]][coverage-url]
+[![Patreon][patreon-image]][patreon-url]
 
 Network cluster.
+
+## Coding style
+
+Please take a look at the [style guidelines](https://github.com/akyoto/quality/blob/master/STYLE.md) if you'd like to make a pull request.
+
+## Patrons
+
+| [![Scott Rayapoullé](https://avatars3.githubusercontent.com/u/11772084?s=70&v=4)](https://github.com/soulcramer) |
+|---|
+| [Scott Rayapoullé](https://github.com/soulcramer) |
+
+Want to see [your own name here](https://www.patreon.com/eduardurbach)?
 
 ## Author
 
@@ -20,7 +32,7 @@ Network cluster.
 [report-url]: https://goreportcard.com/report/github.com/aerogo/cluster
 [tests-image]: https://cloud.drone.io/api/badges/aerogo/cluster/status.svg
 [tests-url]: https://cloud.drone.io/aerogo/cluster
-[codecov-image]: https://codecov.io/gh/aerogo/cluster/graph/badge.svg
-[codecov-url]: https://codecov.io/gh/aerogo/cluster
-[license-image]: https://img.shields.io/badge/license-MIT-blue.svg
-[license-url]: https://github.com/aerogo/cluster/blob/master/LICENSE
+[coverage-image]: https://codecov.io/gh/aerogo/cluster/graph/badge.svg
+[coverage-url]: https://codecov.io/gh/aerogo/cluster
+[patreon-image]: https://img.shields.io/badge/patreon-donate-green.svg
+[patreon-url]: https://www.patreon.com/eduardurbach
