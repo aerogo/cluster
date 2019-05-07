@@ -11,7 +11,7 @@ import (
 	"github.com/aerogo/packet"
 )
 
-// Node ...
+// Node represents a server node.
 type Node struct {
 	listener          net.Listener
 	clients           sync.Map

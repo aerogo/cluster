@@ -8,10 +8,10 @@ import (
 	"github.com/aerogo/packet"
 )
 
-// Node ...
+// Node is a general-purpose node in the cluster. It can act either as a server or as a client.
 type Node interface {
-	Broadcast(*packet.Packet)
 	Address() net.Addr
+	Broadcast(*packet.Packet)
 	Close()
 	IsClosed() bool
 	IsServer() bool
@@ -25,12 +25,14 @@ var (
 
 // New creates a new node in the cluster.
 func New(port int, hosts ...string) Node {
+	// Try to bind the port to start as a server
 	serverNode := server.New(port, hosts...)
 
 	if serverNode.Start() == nil {
 		return serverNode
 	}
 
+	// If the port binding failed, this node will be a client
 	clientNode := client.New(port, "localhost")
 	err := clientNode.Connect()
 

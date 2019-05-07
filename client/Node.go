@@ -10,7 +10,7 @@ import (
 	"github.com/aerogo/packet"
 )
 
-// Node ...
+// Node represents a client node.
 type Node struct {
 	Stream  *packet.Stream
 	port    int
