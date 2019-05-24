@@ -1,5 +1,7 @@
 github.com/aerogo/packet v0.1.5 h1:+J9VyVGlXnmaynukktwc7d+/nGxX7hBSNSj/7X8tg90=
 github.com/aerogo/packet v0.1.5/go.mod h1:/t25yF9WG8B5/QB7wTiHLqwCEQ+nAze7uNm/JJNDQbQ=
+github.com/aerogo/packet v0.1.6 h1:P9TwEV9xcyWxsjQQAXDfM3jItX4xEqRFNGXWMqH9j3Q=
+github.com/aerogo/packet v0.1.6/go.mod h1:/t25yF9WG8B5/QB7wTiHLqwCEQ+nAze7uNm/JJNDQbQ=
 github.com/davecgh/go-spew v1.1.0 h1:ZDRjVQ15GmhC3fiQ8ni8+OwkZQO4DARzQgrnXU1Liz8=
 github.com/davecgh/go-spew v1.1.0/go.mod h1:J7Y8YcW2NihsgmVo/mv3lAwl/skON4iLHjSsI+c5H38=
 github.com/davecgh/go-spew v1.1.1 h1:vj9j/u1bqnvCEfJOwUhtlOARqs3+rkHYY13jYWTU97c=
