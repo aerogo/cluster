@@ -51,6 +51,9 @@ func TestClusterBroadcast(t *testing.T) {
 					assert.Equal(t, message, string(msg.Data))
 					wg.Done()
 					return
+
+				default:
+					panic("Unknown message")
 				}
 			}
 		}(nodes[i].(*client.Node))
