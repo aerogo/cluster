@@ -9,7 +9,7 @@ import (
 	"github.com/aerogo/cluster/client"
 	"github.com/aerogo/cluster/server"
 	"github.com/aerogo/packet"
-	"github.com/stretchr/testify/assert"
+	"github.com/akyoto/assert"
 )
 
 const nodeCount = 5
@@ -24,9 +24,9 @@ func TestClusterClose(t *testing.T) {
 	time.Sleep(100 * time.Millisecond)
 
 	for i := 0; i < nodeCount; i++ {
-		assert.False(t, nodes[i].IsClosed(), "node[%d].IsClosed()", i)
+		assert.False(t, nodes[i].IsClosed())
 		nodes[i].Close()
-		assert.True(t, nodes[i].IsClosed(), "node[%d].IsClosed()", i)
+		assert.True(t, nodes[i].IsClosed())
 	}
 }
 
